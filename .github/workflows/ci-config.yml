@@ -1,9 +1,60 @@
-name: Run Gatling Tests
+Prowadzący: https://www.linkedin.com/in/slawekradzyminski/
+Slajdy: Gatling.pptx
+Dodatkowa teoria: Testy wydajnościowe - teoria
+Miro: https://miro.com/app/board/uXjVKDdflyw=/?share_link_id=568454913968
+Repo: https://github.com/slawekradzyminski/performance-tests-java
+Środowisko: https://github.com/slawekradzyminski/awesome-localstack
+Documentation: https://docs.gatling.io/reference/script/core/simulation/
 
-on: push
+Losowe linki prowadzącego:
+  https://gatling.io/blog/gatling-doubles-its-availability-with-a-new-javascript-sdk
+  https://k6.io/
+  https://locust.io/
+  https://www.amazon.com/Full-Stack-Testing-Practical-Delivering/dp/1098108132
+  http://json.parser.online.fr/
+  https://www.amazon.com/Fundamentals-Software-Architecture-Comprehensive-Characteristics/dp/1492043451
+
+
+
+
+Sprawdzenie czy działa wszystko (środowisko):
+  - http://localhost:8081/login admin/admin
+
+Swagger:
+  http://localhost:4001/swagger-ui.html#/
+  
+  
+  
+  Zmiana brancha
+  git clean -fd
+  git reset --hard
+  git pull
+  git checkout ic01
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+name: Java Gatling Tests
+
+on: [push, pull_request]
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,5 +79,36 @@ jobs:
           chmod +x run-docker-compose-ci.sh
           ./run-docker-compose-ci.sh
 
-      - name: Build and test with Maven
-        run: ./mvnw clean gatling:test -Dgatling.simulationClass=com.awesome.testing.BasicSimulation
+      - name: Run Gatling tests
+        run: ./mvnw gatling:test -Dgatling.simulationClass=com.awesome.testing.BasicSimulation
+
+      - name: Find Gatling Report Directory
+        id: find-report
+        run: |
+          REPORT_DIR=$(find target/gatling -type d -name 'basicsimulation-*' | head -n 1)
+          echo "Report directory: $REPORT_DIR"
+          echo "::set-output name=REPORT_DIR::$REPORT_DIR"
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: 'gh-pages'
+          path: 'gh-pages'
+
+      - name: Clear old reports
+        run: |
+          cd gh-pages
+          git rm -rf .
+          git clean -fxd
+
+      - name: Copy report to gh-pages
+        run: |
+          cp -r ${{ steps.find-report.outputs.REPORT_DIR }}/* gh-pages/
+
+      - name: Commit and push
+        run: |
+          cd gh-pages
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "Update Gatling Report"
+          git push origin gh-pages
